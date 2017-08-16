@@ -1,7 +1,5 @@
 def studname = "rtirskikh"
 def jobsList = []
-def firstJobIndex = 1
-def lastJobIndex = 4
 def gitcommand = "git ls-remote -h -t https://github.com/RomanTirskikh/mntlab-dsl.git"
 println "step1"
 job("EPMFARMDVO300-MNTLAB-${studname}-main-build-job") {
@@ -12,7 +10,7 @@ job("EPMFARMDVO300-MNTLAB-${studname}-main-build-job") {
 				!(["master",studname].contains(it)) 
 			}
 println "step2"		
-for(i=firstJobIndex; i<lastJobIndex+1; i++)
+for (i = 1; i <= 4; i++)
 	{ 
 		parameters 
 			{
