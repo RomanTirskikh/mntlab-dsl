@@ -1,57 +1,78 @@
-job('MNTLAB-rtirskikh-main-build-job'){
-  scm {
-        github ('RomanTirskikh/mntlab-dsl', '$BRANCH_NAME')
-     }      
-  parameters {
-	choiceParam('BRANCH_NAME', ['master'], 'select branch')
-	activeChoiceParam('BUILDS_TRIGGER') {
-            choiceType('CHECKBOX')
-            groovyScript {
-                script('return ["MNTLAB-rtirskikh-child1-build-job", "MNTLAB-rtirskikh-child2-build-job", "MNTLAB-rtirskikh-child3-build-job", "MNTLAB-rtirskikh-child4-build-job"]')
-            }
-        }
-    }
-  steps {	
-	downstreamParameterized {   
-                trigger('$BUILDS_TRIGGER'){      
-                	block{
-                    	buildStepFailure('FAILURE')
-                    	failure('FAILURE')
-                    	unstable('UNSTABLE')
-                }
-        parameters {
-                    predefinedProp ('BRANCH_NAME', '$BRANCH_NAME')
-        }
-      }
-    }
-  }
+def studname = "rtirskikh"
+def jobsList = []
+def firstJobIndex = 1
+def lastJobIndex = 4
+def gitcommand = "git ls-remote -h -t https://github.com/RomanTirskikh/mntlab-dsl.git"
+println "step1"
+job("EPMFARMDVO300-MNTLAB-${studname}-main-build-job") 
+	{
+		def selectedBranches = gitcommand.execute().text.readLines().collect {it.split()[1].replaceAll('refs/heads/', '')
+	}
+		selectedBranches.removeAll 
+			{
+				!(["master",studname].contains(it)) 
+			}
+println "step2"		
+for(i=firstJobIndex; i<lastJobIndex+1; i++)
+	{ 
+		parameters 
+			{
+				println "step3"
+				choiceParam('BRANCH_NAME',selectedBranches,'')
+				booleanParam("EPMFARMDVO300-MNTLAB-${studname}-child${i}-build-job", true,"")
+			}
+
+    //create downstream job
+	println "step4"
+    job("EPMFARMDVO300-MNTLAB-${studname}-child${i}-build-job") 
+		{
+			scm 
+				{
+					github('nikitozzz/mntlab-dsl', studname)
+				}
+			def allBranches = gitcommand.execute().text.readLines().collect {it.split()[1].replaceAll('refs/heads/', '')
+		}
+	println "step5"
+	allBranches.remove(studname)
+	allBranches.add(0,studname)
+	parameters 
+		{
+			choiceParam('BRANCH_NAME',  allBranches,'')
+		}
+	steps 
+		{
+			shell('chmod 777 ./script.sh; ./script.sh > output.txt')
+			shell('tar -czf ${BRANCH_NAME}_dsl_script.tar.gz script.sh jobs.groovy' )
+			shell('cat output.txt' )
+		}
+		publishers 
+		{
+			archiveArtifacts '${BRANCH_NAME}_dsl_script.tar.gz, output.txt'
+		}
+	}	
+	println "step6"
+    jobsList << "MNTLAB-${studname}-child${i}-build-job"
+    steps 
+		{
+			downstreamParameterized 
+				{
+					println "step7"
+					trigger("EPMFARMDVO300-MNTLAB-${studname}-child${i}-build-job") 
+						{
+							block
+								{
+									println "step8"
+									buildStepFailure('FAILURE')
+									failure('FAILURE')
+									unstable('UNSTABLE')
+								}
+							parameters 
+								{
+									println "step9"
+									predefinedProp('BRANCH_NAME', '$BRANCH_NAME')
+								}
+						}
+				}    
+		}
+	}
 }
-
-def gitURL = "https://github.com/RomanTirskikh/mntlab-dsl.git"
-def command = "git ls-remote -h -t $gitURL"
-def proc = command.execute()
-def branches = proc.in.text.readLines().collect
-        {
-            it.replaceAll(/[a-z0-9]*\trefs\/heads\//, '')
-        }
-
-for (i = 1; i <= 4; i++) {
-  job ("MNTLAB-rtirskikh-child${i}-build-job"){ 
-    parameters {
-        choiceParam('BRANCH_NAME', branches)
-    }		   
-    scm {
-         github ('RomanTirskikh/mntlab-dsl', '$BRANCH_NAME')
-    }
-    steps {
-        shell('chmod +x ./script.sh; ./script.sh >> output.txt; tar -czvf "${BRANCH_NAME}_dsl_script.tar.gz" output.txt script.sh jobs.groovy')    	
- }
-    publishers {
-        archiveArtifacts {
-          pattern('output.txt')
-          pattern ('${BRANCH_NAME}_dsl_script.tar.gz')
-          onlyIfSuccessful()          
-       }
-     }
-   }
- }
