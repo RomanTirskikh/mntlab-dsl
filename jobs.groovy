@@ -4,8 +4,7 @@ def firstJobIndex = 1
 def lastJobIndex = 4
 def gitcommand = "git ls-remote -h -t https://github.com/RomanTirskikh/mntlab-dsl.git"
 println "step1"
-job("EPMFARMDVO300-MNTLAB-${studname}-main-build-job") 
-	{
+job("EPMFARMDVO300-MNTLAB-${studname}-main-build-job") {
 		def selectedBranches = gitcommand.execute().text.readLines().collect {it.split()[1].replaceAll('refs/heads/', '')
 	}
 		selectedBranches.removeAll 
@@ -28,7 +27,7 @@ for(i=firstJobIndex; i<lastJobIndex+1; i++)
 		{
 			scm 
 				{
-					github('nikitozzz/mntlab-dsl', studname)
+					github('RomanTirskikh/mntlab-dsl', studname)
 				}
 			def allBranches = gitcommand.execute().text.readLines().collect {it.split()[1].replaceAll('refs/heads/', '')
 		}
